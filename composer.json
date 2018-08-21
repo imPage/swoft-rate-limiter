@@ -6,7 +6,7 @@
         "swoft",
         "rateLimite"
     ],
-    "description": "rateLimite component for swoft",
+    "description": "Swoft 限流器",
     "license": "Apache-2.0",
     "require": {
         "swoft/http-server": "^1.0",
