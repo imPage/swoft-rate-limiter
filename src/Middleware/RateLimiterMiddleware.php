@@ -2,8 +2,8 @@
 /**
  * Created by PhpStorm.
  * User: zcm
- * Date: 2018/7/26
- * Time: 15:41
+ * Date: 2018/8/21
+ * Time: 10:07
  */
 
 namespace Swoft\RateLimiter\Middleware;
@@ -11,46 +11,44 @@ namespace Swoft\RateLimiter\Middleware;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Sunspikes\Ratelimit\Cache\Adapter\DesarrollaCacheAdapter;
+use Sunspikes\Ratelimit\Cache\Factory\DesarrollaCacheFactory;
+use Sunspikes\Ratelimit\RateLimiter;
+use Sunspikes\Ratelimit\Throttle\Factory\ThrottlerFactory;
+use Sunspikes\Ratelimit\Throttle\Hydrator\HydratorFactory;
+use Sunspikes\Ratelimit\Throttle\Settings\ElasticWindowSettings;
 use Swoft\App;
 use Swoft\Bean\Annotation\Bean;
-use Swoft\RateLimiter\Handler\RateLimiterHandler;
-use Swoft\RateLimiter\Mapping\RateLimiterHandlerInterface;
 use Swoft\Http\Message\Middleware\MiddlewareInterface;
-use Swoft\Http\Message\Server\Request;
-use Swoft\Http\Message\Server\Response;
-use Swoft\Http\Server\AttributeEnum;
+use Swoft\RateLimiter\Handler\RateLimiterHandler;
 
 /**
  * @Bean()
  * Class RateLimiterMiddleware
- * @package Swoft\RateLimiter\Middleware
+ * @package App\Middlewares
  */
 class RateLimiterMiddleware implements MiddlewareInterface
 {
     /**
-     * @param ServerRequestInterface $request
-     * @param RequestHandlerInterface $handler
-     * @return ResponseInterface
-     * @throws \Swoft\Exception\Exception
+     * Process an incoming server request and return a response, optionally delegating
+     * response creation to a handler.
+     *
+     * @param \Psr\Http\Message\ServerRequestInterface $request
+     * @param \Psr\Http\Server\RequestHandlerInterface $handler
+     * @return \Psr\Http\Message\ResponseInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        /* @var RateLimiterHandler $RateLimiterHandler*/
-        $RateLimiterHandler = App::getBean(RateLimiterHandler::class); // 因底层bug, 应注入RateLimiterHandlerInterface
+        $config = App::getProperties()->get('rateLimiter');
 
-        /* @var Request $request*/
-        $parsedBody = $RateLimiterHandler->decrypt($request->raw());
-        if ($parsedBody){
-            $request = $request->withParsedBody($parsedBody);
+        /* @var RateLimiterHandler $rateLimiter */
+        $rateLimiter = App::getBean(RateLimiterHandler::class);
+        $result = $rateLimiter->access($request->getUri()->getPath(), $config['limit'], $config['time']);
+
+        if (! $result){
+            return response()->withContent("rateLimiter");
         }
 
-        /* @var Response $response*/
-        $response = $handler->handle($request);
-
-        /* @var Response $response*/
-        $data = $response->getAttributes()[AttributeEnum::RESPONSE_ATTRIBUTE]; //  因底层bug, 应为 $response->getBody()->getContents()
-        $RateLimiterData = $RateLimiterHandler->RateLimiter($data);
-
-        return $response->withAttribute(AttributeEnum::RESPONSE_ATTRIBUTE, $RateLimiterData); //  因底层bug, 应为 $response->withContent(base64_encode($RateLimiterData))
+        return $handler->handle($request);
     }
 }

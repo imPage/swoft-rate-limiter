@@ -1,104 +1,63 @@
 # 如何使用
 ## 安装组件
->composer require zcmzc/swoft-encrypt
+>composer require zcmzc/swoft-swoft-rate-limite
 ## 配置文件
 在/config/properties/app 中添加配置:
 ```php
     'components' => [
         'custom' => [
-            "Swoft\\Encrypt" => dirname(dirname(__DIR__)).'/vendor/zcmzc/swoft-encrypt/src/'
+            "Swoft\\RateLimiter\\",
         ],
     ],
-    'encrypt'      => [
-        'padding'   => OPENSSL_PKCS1_PADDING,
-        'before'    => \Swoft\Encrypt\Bean\Annotation\Encrypt::BEFORE_DECRYPT,
-        'after'     => \Swoft\Encrypt\Bean\Annotation\Encrypt::AFTER_ENCRYPT,
-        'publicKey' => '@resources/key/rsa_public_key.pem',
-        'privateKey'=> '@resources/key/rsa_private_key.pem',
-    ]
+    'rateLimiter' => [
+        // QPS = limit / time
+        'limit' => 10,
+        'time'  => 1,
+        // 参照 sunspikes\php-ratelimiter\config\config.php
+        'config' => [
+            'driver' => 'file',
+            'file' => [
+                'cache_dir' => \Swoft\App::getAlias('@runtime/rateLimiter'),
+            ],
+        ]
+    ],
 ``` 
 ## 注解调用
-新建控制器`App\Controllers\EncryptController`
+新建控制器`App\Controllers\RateLimiterController`
 ```php
 <?php
 
 namespace App\Controllers;
 
-use Swoft\Encrypt\Bean\Annotation\Encrypt;
 use Swoft\Http\Server\Bean\Annotation\Controller;
 use Swoft\Http\Server\Bean\Annotation\RequestMapping;
+use Swoft\RateLimiter\Bean\Annotation\RateLimiter;
 
 /**
- * @Encrypt()
- * @Controller("encrypt")
+ * @RateLimiter(limit=3, time=1)
+ * @Controller("rate-limiter")
  */
-class EncryptController
+class RateLimiterController
 {
     /**
      * @RequestMapping()
-     * @Encrypt(before="")
-     * @return array
+     * @RateLimiter(limit=4, time=1)
      */
-    public function encrypt()
+    public function test()
     {
-        return ['name' => '小红', 'age' => 6666];
+        return ["QPS 4"];
     }
 
     /**
      * @RequestMapping()
-     * @Encrypt(before="", after=Encrypt::AFTER_SIGN)
-     * @return array
+     * @RateLimiter()
      */
-    public function sign()
+    public function test2()
     {
-        return ['name' => '小红', 'age' => 6666];
-    }
-
-    /**
-     * @RequestMapping()
-     * @Encrypt(after="")
-     * @return array
-     */
-    public function decrypt()
-    {
-        return request()->getParsedBody();
-    }
-
-    /**
-     * @RequestMapping()
-     * @Encrypt(after="", before=Encrypt::BEFORE_VERIFY)
-     * @return array
-     */
-    public function verify()
-    {
-        return request()->getParsedBody();
+        return ["QPS 3"];
     }
 }
 ```
-`@Encrypt()`注解里可以设置前置、后置、公钥、私钥
 优先级为`方法注解`>`类注解`>`config/app`
 
-前置、后置可设置为空字符串,覆盖低优先级的配置
-> 注解调用时,request()方法里是修改后的,方法注入的`Request $request`是未修改的
-
-## 中间件调用
-`App\Controllers\EncryptController`添加代码
-```php
-    use Swoft\Encrypt\Middleware\EncryptMiddleware;
-    use Swoft\Http\Message\Bean\Annotation\Middleware;
-    use Swoft\Http\Message\Server\Request;
-    ...
-
-    /**
-     * @RequestMapping()
-     * @Middleware(EncryptMiddleware::class)
-     * @param Request $request
-     * @return array
-     */
-    public function middleware(Request $request)
-    {
-        print_R($request->getParsedBody());
-        return ['name' => '小红', 'age' => 6666];
-    }
-```
->中间件调用时,方法注入的`Request $request`是修改后的,`request()`方法获取的则是未操作前的请求对象
+没找到好用的限流器, 有空写一个

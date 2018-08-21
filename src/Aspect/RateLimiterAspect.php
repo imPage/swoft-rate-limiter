@@ -21,6 +21,7 @@ use Swoft\Bean\Annotation\Aspect;
 use Swoft\Bean\Annotation\PointAnnotation;
 use Swoft\RateLimiter\Bean\Annotation\RateLimiter as RateLimiterAnnotation;
 use Swoft\RateLimiter\Bean\Collector\RateLimiterCollector;
+use Swoft\RateLimiter\Handler\RateLimiterHandler;
 
 /**
  * @Aspect()
@@ -44,36 +45,39 @@ class RateLimiterAspect
      */
     public function Around(ProceedingJoinPoint $proceedingJoinPoint)
     {
-        list($this->classAnnotation, $this->annotation) = $this->getAnnotation($proceedingJoinPoint);
+        list($this->classAnnotation, $this->annotation) = $this->getAnnotations($proceedingJoinPoint);
 
         $limit = $this->getAnnotationProperty('limit');
         $time = $this->getAnnotationProperty('time');
 
-        $cacheAdapter = new DesarrollaCacheAdapter(
-            (new DesarrollaCacheFactory(null, App::getProperties()->get('rateLimiter')['config'])
-            )->make());
-        $setting = new ElasticWindowSettings($limit, $time);
-        $rateLimiter = new RateLimiter(new ThrottlerFactory($cacheAdapter), new HydratorFactory(), $setting);
+        /* @var RateLimiterHandler $rateLimiter */
+        $rateLimiter = App::getBean(RateLimiterHandler::class);
+        $result = $rateLimiter->access(request()->getUri()->getPath(), $limit, $time);
 
-        $loginThrottler = $rateLimiter->get(request()->getUri()->getPath());
-
-        if (! $loginThrottler->access()){
+        if (! $result){
             return response()->withContent("rateLimiter");
         }
         return $proceedingJoinPoint->proceed();
     }
 
+    /**
+     * 根据优先级取注解属性
+     * @param string $field
+     * @return mixed
+     */
     public function getAnnotationProperty(string $field)
     {
         $method = 'get'.ucwords($field);
-        return $this->annotation->$method() ?? $this->classAnnotation->$method() ?? App::getProperties()->get('rateLimiter')[$field];
+        return $this->annotation->$method()
+            ?? $this->classAnnotation->$method()
+            ?? App::getProperties()->get('rateLimiter')[$field];
     }
 
     /**
      * @param ProceedingJoinPoint $proceedingJoinPoint
      * @return RateLimiterAnnotation[]
      */
-    private function getAnnotation(ProceedingJoinPoint $proceedingJoinPoint)
+    private function getAnnotations(ProceedingJoinPoint $proceedingJoinPoint)
     {
         $collector = RateLimiterCollector::getCollector();
         return [
