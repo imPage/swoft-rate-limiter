@@ -1,5 +1,5 @@
 {
-    "name": "zcmzc/swoft-rate-limite",
+    "name": "zcmzc/swoft-rate-limiter",
     "type": "library",
     "keywords": [
         "php",
@@ -15,12 +15,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Swoft\\RateLimite\\": "src/"
+            "Swoft\\RateLimiter\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "SwoftTest\\RateLimite\\": "test/Cases"
+            "SwoftTest\\RateLimiter\\": "test/Cases"
         }
     },
     "repositories": [
