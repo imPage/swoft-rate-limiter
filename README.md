@@ -12,7 +12,7 @@
     'rateLimiter' => [
         // 每秒产生Token 数量
         'limit' => 1,
-        // 峰值
+        // 桶容量
         'capacity'  => 2,
         // 限流回调
         'callback' => function($seconds, \Swoft\Aop\ProceedingJoinPoint $proceedingJoinPoint){

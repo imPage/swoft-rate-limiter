@@ -36,6 +36,7 @@ class RateLimiterAspect
      * @Around()
      * @param ProceedingJoinPoint $proceedingJoinPoint
      * @return mixed|\Psr\Http\Message\ResponseInterface
+     * @throws \bandwidthThrottle\tokenBucket\storage\StorageException
      */
     public function Around(ProceedingJoinPoint $proceedingJoinPoint)
     {

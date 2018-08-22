@@ -13,6 +13,7 @@ use bandwidthThrottle\tokenBucket\storage\FileStorage;
 use bandwidthThrottle\tokenBucket\TokenBucket;
 use Swoft\App;
 use Swoft\Bean\Annotation\Bean;
+use Swoft\Bean\Annotation\Value;
 
 /**
  * @Bean()
@@ -21,6 +22,12 @@ use Swoft\Bean\Annotation\Bean;
  */
 class RateLimiterHandler
 {
+    /**
+     * @Value(name="${config.rateLimiter.cache_dir}")
+     * @var string
+     */
+    private $cache_dir;
+
     /**
      * @var TokenBucket[]
      */
@@ -35,7 +42,8 @@ class RateLimiterHandler
      */
     public function build(string $path, int $limit, int $capacity)
     {
-        $storage = new FileStorage(App::getProperties()->get('rateLimiter')['cache_dir'].'/'.$path);
+        // 后续抽象Storage出来
+        $storage = new FileStorage($this->cache_dir.'/'.$path);
         $rate = new Rate($limit, Rate::SECOND);
         $bucket = new TokenBucket($capacity, $rate, $storage);
         $bucket->bootstrap($limit);
