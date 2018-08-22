@@ -9,7 +9,6 @@
 namespace Swoft\RateLimiter\Bean\Annotation;
 
 use Doctrine\Common\Annotations\Annotation\Target;
-use phpDocumentor\Reflection\Types\Callable_;
 
 /**
  * @Annotation

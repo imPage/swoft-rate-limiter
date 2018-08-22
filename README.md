@@ -1,6 +1,6 @@
 # 如何使用
 ## 安装组件
->composer require zcmzc/swoft-swoft-rate-limite
+>composer require zcmzc/swoft-swoft-rate-limiter
 ## 配置文件
 在/config/properties/app 中添加配置:
 ```php
