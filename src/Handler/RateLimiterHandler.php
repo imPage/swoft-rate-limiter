@@ -11,7 +11,6 @@ namespace Swoft\RateLimiter\Handler;
 use bandwidthThrottle\tokenBucket\Rate;
 use bandwidthThrottle\tokenBucket\storage\FileStorage;
 use bandwidthThrottle\tokenBucket\TokenBucket;
-use Swoft\App;
 use Swoft\Bean\Annotation\Bean;
 use Swoft\Bean\Annotation\Value;
 
