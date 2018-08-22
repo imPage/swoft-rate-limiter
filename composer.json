@@ -11,7 +11,7 @@
     "require": {
         "swoft/http-server": "^1.0",
         "swoft/framework": "^1.0",
-        "sunspikes/php-ratelimiter": "^1.2"
+        "bandwidth-throttle/token-bucket": "^2.0"
     },
     "autoload": {
         "psr-4": {

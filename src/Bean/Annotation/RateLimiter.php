@@ -9,6 +9,7 @@
 namespace Swoft\RateLimiter\Bean\Annotation;
 
 use Doctrine\Common\Annotations\Annotation\Target;
+use phpDocumentor\Reflection\Types\Callable_;
 
 /**
  * @Annotation
@@ -19,16 +20,38 @@ use Doctrine\Common\Annotations\Annotation\Target;
 class RateLimiter
 {
     /**
-     * 限制次数
+     * 每秒生成
      * @var int|null
      */
     private $limit;
 
     /**
-     * 冷却时间
+     * 桶容量
      * @var int|null
      */
-    private $time;
+    private $capacity;
+
+    /**
+     * 限流回调
+     * @var array|null
+     */
+    private $callback;
+
+    /**
+     * @return array|null
+     */
+    public function getCallback()
+    {
+        return $this->callback;
+    }
+
+    /**
+     * @param array $callback
+     */
+    public function setCallback(array $callback)
+    {
+        $this->callback = $callback;
+    }
 
     /**
      * @return int|null
@@ -49,17 +72,17 @@ class RateLimiter
     /**
      * @return int|null
      */
-    public function getTime()
+    public function getCapacity()
     {
-        return $this->time;
+        return $this->capacity;
     }
 
     /**
-     * @param int $time
+     * @param int|null $capacity
      */
-    public function setTime(int $time)
+    public function setCapacity(int $capacity)
     {
-        $this->time = $time;
+        $this->capacity = $capacity;
     }
 
     public function __construct(array $values)
@@ -68,8 +91,12 @@ class RateLimiter
             $this->limit = $values['limit'];
         }
 
-        if (isset($values['time'])) {
-            $this->time = $values['time'];
+        if (isset($values['capacity'])) {
+            $this->capacity = $values['capacity'];
+        }
+
+        if (isset($values['callback'])) {
+            $this->callback = $values['callback'];
         }
     }
 }

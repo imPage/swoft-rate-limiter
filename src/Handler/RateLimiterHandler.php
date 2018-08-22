@@ -8,12 +8,9 @@
 
 namespace Swoft\RateLimiter\Handler;
 
-use Sunspikes\Ratelimit\Cache\Adapter\DesarrollaCacheAdapter;
-use Sunspikes\Ratelimit\Cache\Factory\DesarrollaCacheFactory;
-use Sunspikes\Ratelimit\RateLimiter;
-use Sunspikes\Ratelimit\Throttle\Factory\ThrottlerFactory;
-use Sunspikes\Ratelimit\Throttle\Hydrator\HydratorFactory;
-use Sunspikes\Ratelimit\Throttle\Settings\ElasticWindowSettings;
+use bandwidthThrottle\tokenBucket\Rate;
+use bandwidthThrottle\tokenBucket\storage\FileStorage;
+use bandwidthThrottle\tokenBucket\TokenBucket;
 use Swoft\App;
 use Swoft\Bean\Annotation\Bean;
 
@@ -25,29 +22,38 @@ use Swoft\Bean\Annotation\Bean;
 class RateLimiterHandler
 {
     /**
-     * @param int $limit
-     * @param int $time
-     * @return RateLimiter
+     * @var TokenBucket[]
      */
-    public function build(int $limit, int $time)
-    {
-        $cacheAdapter = new DesarrollaCacheAdapter(
-            (new DesarrollaCacheFactory(null, App::getProperties()->get('rateLimiter')['config'])
-            )->make());
-        $setting = new ElasticWindowSettings($limit, $time);
-        return new RateLimiter(new ThrottlerFactory($cacheAdapter), new HydratorFactory(), $setting);
-    }
+    private $buckets;
 
     /**
      * @param string $path
      * @param int $limit
-     * @param int $time
-     * @return bool
+     * @param int $capacity
+     * @return TokenBucket
+     * @throws \bandwidthThrottle\tokenBucket\storage\StorageException
      */
-    public function access(string $path, int $limit, int $time)
+    public function build(string $path, int $limit, int $capacity)
     {
-        $rateLimiter = $this->build($limit, $time);
+        $storage = new FileStorage(App::getProperties()->get('rateLimiter')['cache_dir'].'/'.$path);
+        $rate = new Rate($limit, Rate::SECOND);
+        $bucket = new TokenBucket($capacity, $rate, $storage);
+        $bucket->bootstrap($limit);
+        $this->setBucket($path, $bucket);
+        return $bucket;
+    }
 
-        return $rateLimiter->get($path)->access();
+    /**
+     * @param string $path
+     * @return TokenBucket|null
+     */
+    public function getBucket(string $path)
+    {
+        return $this->buckets[$path];
+    }
+
+    public function setBucket(string $path, TokenBucket $bucket)
+    {
+        $this->buckets[$path] = $bucket;
     }
 }

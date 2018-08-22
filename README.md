@@ -10,16 +10,15 @@
         ],
     ],
     'rateLimiter' => [
-        // QPS = limit / time
-        'limit' => 10,
-        'time'  => 1,
-        // 参照 sunspikes\php-ratelimiter\config\config.php
-        'config' => [
-            'driver' => 'file',
-            'file' => [
-                'cache_dir' => \Swoft\App::getAlias('@runtime/rateLimiter'),
-            ],
-        ]
+        // 每秒产生Token 数量
+        'limit' => 1,
+        // 峰值
+        'capacity'  => 2,
+        // 限流回调
+        'callback' => function($seconds, \Swoft\Aop\ProceedingJoinPoint $proceedingJoinPoint){
+            return response()->withContent($seconds);
+        },
+        'cache_dir' => \Swoft\App::getAlias('@runtime/rateLimiter'),
     ],
 ``` 
 ## 注解调用
@@ -34,30 +33,48 @@ use Swoft\Http\Server\Bean\Annotation\RequestMapping;
 use Swoft\RateLimiter\Bean\Annotation\RateLimiter;
 
 /**
- * @RateLimiter(limit=3, time=1)
+ * @RateLimiter(limit=1, capacity=3)
  * @Controller("rate-limiter")
  */
 class RateLimiterController
 {
     /**
      * @RequestMapping()
-     * @RateLimiter(limit=4, time=1)
+     * @RateLimiter()
      */
     public function test()
     {
-        return ["QPS 4"];
+        return ["QPS 1, 峰值3"];
     }
 
     /**
      * @RequestMapping()
-     * @RateLimiter()
+     * @RateLimiter(limit=2, capacity=4)
      */
     public function test2()
     {
-        return ["QPS 3"];
+        return ["QPS 2, 峰值4"];
+    }
+
+    /**
+     * @RequestMapping()
+     * @RateLimiter(limit=1, capacity=1, callback={RateLimiterController::class, "getCallback"})
+     */
+    public function test3()
+    {
+        return ["QPS 1, 峰值1"];
+    }
+
+    /**
+     * @param $seconds // 下次Token 生成时间
+     * @param \Swoft\Aop\ProceedingJoinPoint $proceedingJoinPoint
+     * @return mixed
+     */
+    public static function getCallback ($seconds, \Swoft\Aop\ProceedingJoinPoint $proceedingJoinPoint)
+    {
+        usleep(intval($seconds * 1000 * 1000));
+        return $proceedingJoinPoint->proceed();
     }
 }
 ```
 优先级为`方法注解`>`类注解`>`config/app`
-
-没找到好用的限流器, 有空写一个
