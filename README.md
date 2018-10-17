@@ -17,8 +17,7 @@
         // 限流回调
         'callback' => function($seconds, \Swoft\Aop\ProceedingJoinPoint $proceedingJoinPoint){
             return response()->withContent($seconds);
-        },
-        'cache_dir' => \Swoft\App::getAlias('@runtime/rateLimiter'),
+        }
     ],
 ``` 
 ## 注解调用

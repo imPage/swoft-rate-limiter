@@ -11,6 +11,7 @@
     "require": {
         "swoft/http-server": "^1.0",
         "swoft/framework": "^1.0",
+        "swoft/redis": "^1.0",
         "bandwidth-throttle/token-bucket": "^2.0"
     },
     "autoload": {
