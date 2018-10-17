@@ -15,6 +15,7 @@ use Swoft\Bean\Annotation\Aspect;
 use Swoft\Bean\Annotation\PointAnnotation;
 use Swoft\RateLimiter\Bean\Annotation\RateLimiter;
 use Swoft\RateLimiter\Bean\Collector\RateLimiterCollector;
+use Swoft\RateLimiter\Exception\RateLimiterException;
 use Swoft\RateLimiter\Handler\RateLimiterHandler;
 
 /**
@@ -30,22 +31,22 @@ use Swoft\RateLimiter\Handler\RateLimiterHandler;
 class RateLimiterAspect
 {
     private $classAnnotation;
-    private $annotation;
+    private $methodAnnotation;
 
     /**
      * @Around()
      * @param ProceedingJoinPoint $proceedingJoinPoint
      * @return mixed|\Psr\Http\Message\ResponseInterface
-     * @throws \bandwidthThrottle\tokenBucket\storage\StorageException
      */
     public function Around(ProceedingJoinPoint $proceedingJoinPoint)
     {
-        list($this->classAnnotation, $this->annotation) = $this->getAnnotations($proceedingJoinPoint);
+        [$this->classAnnotation, $this->methodAnnotation] = $this->getAnnotations($proceedingJoinPoint);
 
         $callback = $this->getAnnotationProperty('callback');
         $limit = $this->getAnnotationProperty('limit');
         $capacity = $this->getAnnotationProperty('capacity');
-        $path = str_replace('/', '_', request()->getUri()->getPath());
+        // TODO 后续可以改成自定义限流范围
+        $path = str_replace('/', ':', request()->getUri()->getPath());
 
         /* @var RateLimiterHandler $rateLimiter */
         $rateLimiter = App::getBean(RateLimiterHandler::class);
@@ -59,7 +60,7 @@ class RateLimiterAspect
             return $proceedingJoinPoint->proceed();
         }
         if (! $callback || ! is_callable($callback)){
-            return response()->withContent("limit {$seconds}");
+            throw new RateLimiterException("Request Rate Limite");
         }
         return call_user_func($callback, $seconds, $proceedingJoinPoint);
     }
@@ -72,7 +73,7 @@ class RateLimiterAspect
     public function getAnnotationProperty(string $field)
     {
         $method = 'get'.ucwords($field);
-        return $this->annotation->$method()
+        return $this->methodAnnotation->$method()
             ?? $this->classAnnotation->$method()
             ?? App::getProperties()->get('rateLimiter')[$field];
     }
@@ -83,10 +84,10 @@ class RateLimiterAspect
      */
     private function getAnnotations(ProceedingJoinPoint $proceedingJoinPoint)
     {
-        $collector = RateLimiterCollector::getCollector();
+        $collector = RateLimiterCollector::getCollector()[get_class($proceedingJoinPoint->getTarget())];
         return [
-            $collector[get_class($proceedingJoinPoint->getTarget())]['classAnnotation'],
-            $collector[get_class($proceedingJoinPoint->getTarget())][$proceedingJoinPoint->getMethod()],
+            $collector['classAnnotation'],
+            $collector[$proceedingJoinPoint->getMethod()],
         ];
     }
 }

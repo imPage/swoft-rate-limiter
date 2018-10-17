@@ -11,8 +11,11 @@ namespace Swoft\RateLimiter\Handler;
 use bandwidthThrottle\tokenBucket\Rate;
 use bandwidthThrottle\tokenBucket\storage\FileStorage;
 use bandwidthThrottle\tokenBucket\TokenBucket;
+use Swoft\App;
 use Swoft\Bean\Annotation\Bean;
-use Swoft\Bean\Annotation\Value;
+use Swoft\Bean\Annotation\Inject;
+use Swoft\RateLimiter\Storage\CoRedisStorage;
+use Swoft\Redis\Redis;
 
 /**
  * @Bean()
@@ -22,15 +25,15 @@ use Swoft\Bean\Annotation\Value;
 class RateLimiterHandler
 {
     /**
-     * @Value(name="${config.rateLimiter.cache_dir}")
-     * @var string
-     */
-    private $cache_dir;
-
-    /**
      * @var TokenBucket[]
      */
     private $buckets;
+
+    /**
+     * @Inject()
+     * @var Redis
+     */
+    private $redis;
 
     /**
      * @param string $path
@@ -41,8 +44,7 @@ class RateLimiterHandler
      */
     public function build(string $path, int $limit, int $capacity)
     {
-        // 后续抽象Storage出来
-        $storage = new FileStorage($this->cache_dir.'/'.$path);
+        $storage = new CoRedisStorage($path, $this->redis);
         $rate = new Rate($limit, Rate::SECOND);
         $bucket = new TokenBucket($capacity, $rate, $storage);
         $bucket->bootstrap($limit);
