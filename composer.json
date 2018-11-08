@@ -21,13 +21,14 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "SwoftTest\\RateLimiter\\": "test/Cases"
+            "SwoftTest\\RateLimiter\\": "test/Cases",
+            "SwoftTest\\Testing\\": "test/Testing"
         }
     },
     "repositories": [
         {
             "type": "composer",
-            "url": "https://packagist.phpcomposer.com"
+            "url": "https://packagist.laravel-china.org"
         }
     ],
     "require-dev": {
